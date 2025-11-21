@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>核心枢纽终端</title>
+
+    <style>
+
+        :root {
+
+            --neon-pink: #ff00ff;
+
+            --neon-cyan: #00ffff;
+
+            --neon-yellow: #ffee00;
+
+            --neon-green: #00ff00;
+
+            --bg-dark: #050505;
+
+            --card-bg: rgba(10, 20, 30, 0.95);
+
+        }
+
+
+
+        * { box-sizing: border-box; user-select: none; }
+
+
+
+        body {
+
+            margin: 0;
+
+            height: 100vh;
+
+            background-color: var(--bg-dark);
+
+            background-image: 
+
+                radial-gradient(circle at 50% 50%, rgba(20, 20, 40, 1), #000 120%);
+
+            color: var(--neon-cyan);
+
+            font-family: 'Courier New', monospace;
+
+            overflow: hidden;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+        }
+
+
+
+        /* --- 背景装饰网格 --- */
+
+        .grid-bg {
+
+            position: absolute;
+
+            width: 200vw;
+
+            height: 200vh;
+
+            background: 
+
+                linear-gradient(transparent 0%, rgba(0, 255, 255, 0.05) 1%, transparent 2%),
+
+                linear-gradient(90deg, transparent 0%, rgba(255, 0, 255, 0.05) 1%, transparent 2%);
+
+            background-size: 50px 50px;
+
+            transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+
+            animation: gridMove 20s linear infinite;
+
+            z-index: -1;
+
+        }
+
+
+
+        @keyframes gridMove {
+
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
+
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px) translateZ(-200px); }
+
+        }
+
+
+
+        /* --- 主容器 --- */
+
+        .main-container {
+
+            display: flex;
+
+            width: 95vw;
+
+            height: 90vh;
+
+            max-width: 1300px;
+
+            gap: 30px;
+
+            align-items: center;
+
+        }
+
+
+
+        /* --- 左侧：引导与汇总区 --- */
+
+        .intro-section {
+
+            flex: 1;
+
+            height: 80%;
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: flex-end;
+
+            justify-content: flex-start;
+
+            text-align: right;
+
+        }
+
+
+
+        .title-glitch {
+
+            font-size: 3.5rem;
+
+            font-weight: bold;
+
+            text-shadow: 3px 3px 0px var(--neon-pink);
+
+            position: relative;
+
+            margin-bottom: 10px;
+
+            line-height: 1;
+
+        }
+
+
+
+        .subtitle {
+
+            font-size: 1.2rem;
+
+            color: var(--neon-yellow);
+
+            border-bottom: 2px solid var(--neon-yellow);
+
+            padding-bottom: 10px;
+
+            margin-bottom: 20px;
+
+            width: 100%;
+
+        }
+
+
+
+        .instruction {
+
+            font-size: 0.9rem;
+
+            opacity: 0.8;
+
+            line-height: 1.6;
+
+            background: rgba(0,0,0,0.6);
+
+            padding: 15px;
+
+            border-right: 4px solid var(--neon-cyan);
+
+            margin-bottom: 30px;
+
+        }
+
+
+
+        /* 新增：终端输出区（用于显示汇总） */
+
+        .terminal-output {
+
+            width: 100%;
+
+            flex-grow: 1;
+
+            background: rgba(0, 10, 0, 0.8);
+
+            border: 1px solid var(--neon-green);
+
+            padding: 15px;
+
+            overflow-y: auto;
+
+            font-size: 0.85rem;
+
+            color: var(--neon-green);
+
+            text-align: left;
+
+            display: flex;
+
+            flex-direction: column-reverse; /* 让最新消息在最下面 */
+
+            box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.2);
+
+        }
+
+
+
+        .log-entry {
+
+            margin-bottom: 15px;
+
+            border-bottom: 1px dashed rgba(0, 255, 0, 0.3);
+
+            padding-bottom: 10px;
+
+            animation: fadeIn 0.5s ease-out;
+
+        }
+
+        .log-timestamp { color: #666; font-size: 0.7rem; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+
+
+        /* --- 右侧：扭蛋机实体 --- */
+
+        .machine-container {
+
+            position: relative;
+
+            width: 400px;
+
+            height: 700px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+        }
+
+
+
+        .machine-body {
+
+            width: 100%;
+
+            height: 100%;
+
+            background: #111;
+
+            border: 4px solid var(--neon-cyan);
+
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
+
+            border-radius: 20px;
+
+            position: relative;
+
+            display: flex;
+
+            flex-direction: column;
+
+            overflow: hidden;
+
+        }
+
+
+
+        .glass-dome {
+
+            flex: 2;
+
+            background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(0,255,255,0.05));
+
+            border-bottom: 4px solid var(--neon-cyan);
+
+            position: relative;
+
+            overflow: hidden;
+
+        }
+
+
+
+        /* 装饰球体 */
+
+        .orb-deco {
+
+            position: absolute;
+
+            border-radius: 50%;
+
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.5);
+
+            opacity: 0.8;
+
+        }
+
+
+
+        .controls-area {
+
+            flex: 1;
+
+            background: repeating-linear-gradient(45deg, #1a1a1a, #1a1a1a 10px, #222 10px, #222 20px);
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            justify-content: space-evenly;
+
+            padding: 20px;
+
+            position: relative;
+
+        }
+
+
+
+        /* 旋钮 */
+
+        .knob {
+
+            width: 120px;
+
+            height: 120px;
+
+            border-radius: 50%;
+
+            background: radial-gradient(#333, #000);
+
+            border: 4px solid var(--neon-pink);
+
+            box-shadow: 0 0 20px var(--neon-pink);
+
+            position: relative;
+
+            cursor: pointer;
+
+            transition: transform 0.5s ease;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+        }
+
+        .knob::after {
+
+            content: '';
+
+            width: 80%;
+
+            height: 10px;
+
+            background: var(--neon-pink);
+
+            border-radius: 5px;
+
+        }
+
+        .knob:active { transform: scale(0.95); }
+
+
+
+        /* 投币口 */
+
+        .coin-slot {
+
+            width: 100px;
+
+            height: 15px;
+
+            background: #000;
+
+            border: 1px solid var(--neon-yellow);
+
+            box-shadow: 0 0 10px var(--neon-yellow);
+
+            margin-bottom: 10px;
+
+            position: relative;
+
+        }
+
+        .coin-slot.active { box-shadow: 0 0 20px var(--neon-green); border-color: var(--neon-green); }
+
+
+
+        /* 出货口 */
+
+        .exit-chute {
+
+            position: absolute;
+
+            bottom: 20px;
+
+            width: 80%;
+
+            height: 100px;
+
+            background: #000;
+
+            border: 2px solid #fff;
+
+            border-radius: 10px;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            overflow: hidden;
+
+        }
+
+
+
+        /* --- 交互对象 --- */
+
+        .player-coin {
+
+            position: absolute;
+
+            bottom: 50px;
+
+            left: -100px;
+
+            width: 70px;
+
+            height: 70px;
+
+            background: radial-gradient(gold, #b8860b);
+
+            border: 2px solid #fff;
+
+            border-radius: 50%;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            font-weight: bold;
+
+            color: #440000;
+
+            font-size: 30px;
+
+            box-shadow: 0 0 15px gold;
+
+            cursor: grab;
+
+            animation: float 3s infinite ease-in-out;
+
+            z-index: 10;
+
+        }
+
+
+
+        .capsule {
+
+            width: 70px;
+
+            height: 70px;
+
+            border-radius: 50%;
+
+            position: absolute;
+
+            background: radial-gradient(circle at 30% 30%, #fff, var(--neon-cyan));
+
+            box-shadow: 0 0 20px var(--neon-cyan);
+
+            cursor: pointer;
+
+            z-index: 20;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 30px;
+
+            color: #000;
+
+        }
+
+        
+
+        .capsule.dropping { animation: dropAnim 1s cubic-bezier(0.5, -0.5, 0.2, 1.5) forwards; }
+
+
+
+        /* --- 全息卡片 Modal --- */
+
+        .modal-overlay {
+
+            position: fixed;
+
+            top: 0; left: 0; width: 100%; height: 100%;
+
+            background: rgba(0, 0, 0, 0.8);
+
+            backdrop-filter: blur(10px);
+
+            z-index: 1000;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            opacity: 0;
+
+            pointer-events: none;
+
+            transition: opacity 0.3s;
+
+        }
+
+
+
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+
+
+        .holo-card {
+
+            width: 800px;
+
+            height: 500px;
+
+            background: var(--card-bg);
+
+            border: 1px solid var(--neon-cyan);
+
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.3);
+
+            position: relative;
+
+            display: flex;
+
+            flex-direction: column;
+
+            transform: scale(0.8);
+
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+            overflow: hidden;
+
+        }
+
+
+
+        .modal-overlay.active .holo-card { transform: scale(1); }
+
+
+
+        /* 卡片内部结构 */
+
+        .card-header {
+
+            height: 80px;
+
+            border-bottom: 1px solid var(--neon-cyan);
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            padding: 0 30px;
+
+            background: rgba(0, 255, 255, 0.05);
+
+        }
+
+
+
+        .card-title { font-size: 2rem; font-weight: bold; color: #fff; text-shadow: 0 0 10px var(--neon-cyan); }
+
+        .card-close { cursor: pointer; color: var(--neon-pink); font-size: 1.5rem; border: 1px solid var(--neon-pink); padding: 5px 15px; transition: 0.2s; }
+
+        .card-close:hover { background: var(--neon-pink); color: #000; }
+
+        .card-body { flex: 1; display: flex; padding: 20px; gap: 20px; }
+
+        .card-left { flex: 2; display: flex; flex-direction: column; gap: 20px; }
+
+        .card-right { flex: 1; border-left: 1px dashed rgba(255,255,255,0.2); padding-left: 20px; display: flex; flex-direction: column; gap: 15px; }
+
+        .section-title { color: var(--neon-yellow); font-size: 0.8rem; margin-bottom: 10px; letter-spacing: 2px; }
+
+        .text-block { font-size: 1rem; line-height: 1.6; color: #ddd; min-height: 100px; }
+
+        .data-viz { background: rgba(0,0,0,0.5); border: 1px solid #333; padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+
+        .cursor { display: inline-block; width: 10px; height: 18px; background: var(--neon-cyan); animation: blink 1s infinite; vertical-align: middle; }
+
+
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+        @keyframes dropAnim {
+
+            0% { transform: translateY(-300px) rotate(0deg); opacity: 0; }
+
+            60% { transform: translateY(10px) rotate(180deg); opacity: 1; }
+
+            80% { transform: translateY(-5px) rotate(200deg); }
+
+            100% { transform: translateY(0) rotate(360deg); }
+
+        }
+
+        .shaking { animation: shake 0.5s linear; }
+
+        @keyframes shake { 0% { transform: translate(0,0); } 25% { transform: translate(-5px, 5px); } 50% { transform: translate(5px, -5px); } 75% { transform: translate(-5px, -5px); } }
+
+
+
+        .progress-bar { height: 6px; background: #333; margin-top: 5px; position: relative; overflow: hidden; }
+
+        .progress-fill { height: 100%; background: var(--neon-green); width: 0%; transition: width 1s ease-out; }
+
+
+
+    </style>
+
+</head>
+
+<body>
+
+
+
+    <div class="grid-bg"></div>
+
+
+
+    <div class="main-container">
+
+        <div class="intro-section">
+
+            <div class="title-glitch">核心枢纽<br>终端</div>
+
+            <div class="subtitle">数据采集系统 V2.77</div>
+
+            <div class="instruction">
+
+                >> 启动序列:<br>
+
+                1. 投入货币 [©]<br>
+
+                2. 启动机制<br>
+
+                3. 解码数据球<br>
+
+                <br>
+
+                *系统将在每解码10次后生成报告*
+
+            </div>
+
+            <div class="terminal-output" id="terminalOutput">
+
+                 <div class="log-timestamp">>> 系统就绪。等待输入...</div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="machine-container">
+
+            <div class="machine-body" id="machine">
+
+                <div class="glass-dome" id="dome"></div>
+
+                <div class="controls-area">
+
+                    <div class="coin-slot" id="slot"></div>
+
+                    <div class="knob" id="knob"></div>
+
+                    <div class="exit-chute" id="chute"></div>
+
+                </div>
+
+            </div>
+
+            <div class="player-coin" id="coin" draggable="true">©</div>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="modal-overlay" id="modal">
+
+        <div class="holo-card">
+
+            <div class="card-header">
+
+                <div class="card-title" id="cardTitle">加载中...</div>
+
+                <div class="card-close" id="closeBtn">关闭_X</div>
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="card-left">
+
+                    <div>
+
+                        <div class="section-title">// 数据定义</div>
+
+                        <div class="text-block" id="defBlock"><span class="cursor"></span></div>
+
+                    </div>
+
+                    <div>
+
+                        <div class="section-title">// 应用场景</div>
+
+                        <div class="text-block" id="caseBlock"></div>
+
+                    </div>
+
+                </div>
+
+                <div class="card-right">
+
+                    <div class="section-title">// 系统指标</div>
+
+                    <div class="data-viz" id="dataViz"></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <script>
+
+        // --- 1. 扩展的测试数据集 (通用科技/赛博朋克概念) ---
+
+        const knowledgeBase = [
+
+            { term: "Cyberdeck", color: "#ff00ff", definition: "便携式神经接入终端，黑客（Netrunner）用于接入赛博空间的非法改装设备。", case: "在移动环境中快速部署 ICE 破解程序，入侵企业安防网络。", metric: "接入速度: +150%", trend: 88 },
+
+            { term: "Smart Contract", color: "#00ffff", definition: "存储在区块链上的自动执行程序，满足预设条件时自动完成交易协议，无需中介。", case: "去中心化金融（DeFi）中的自动借贷清算协议。", metric: "信任成本: -99%", trend: 95 },
+
+            { term: "Metaverse", color: "#ffee00", definition: "一个持久化、共享的虚拟三维空间集合，用户通过数字化身（Avatar）进行交互。", case: "跨国企业在虚拟总部大楼中召开全息投影会议。", metric: "用户沉浸度: High", trend: 76 },
+
+            { term: "Neural Link", color: "#00ff00", definition: "直接连接人脑与计算机网络的生物电子接口，实现思维控制和感官数据上传。", case: "操作员通过意念直接控制重型工业机械臂进行精密作业。", metric: "反应延迟: <5ms", trend: 92 },
+
+            { term: "DAO", color: "#ff3333", definition: "Decentralized Autonomous Organization。基于编码规则运行的组织，没有中心化领导。", case: "一个由社区成员共同投票决定资金用途的开源软件开发基金会。", metric: "治理效率: Variable", trend: 65 },
+
+            { term: "Edge Computing", color: "#ff00ff", definition: "将数据处理和存储推向网络边缘，靠近数据源头，以减少延迟和带宽使用。", case: "自动驾驶汽车实时处理传感器数据并做出决策，无需上传云端。", metric: "延迟降低: 80%", trend: 89 },
+
+            { term: "Haptic Suit", color: "#00ffff", definition: "一种可穿戴设备，通过物理反馈模拟虚拟世界中的触觉感受。", case: "在虚拟格斗训练中模拟受到攻击的冲击感。", metric: "感官真实度: 70%", trend: 55 },
+
+            { term: "Synthetic Meat", color: "#ffee00", definition: "在实验室环境中通过细胞培养技术生产的人造肉类产品。", case: "解决未来城市人口的蛋白质供应短缺问题，减少环境污染。", metric: "碳足迹: -90%", trend: 45 },
+
+            { term: "Quantum Cryptography", color: "#00ff00", definition: "利用量子力学原理进行信息加密的技术，理论上无法被传统算力破解。", case: "保护巨型企业间最高机密的跨国数据传输通道。", metric: "安全性: Absolute", trend: 30 },
+
+            { term: "Digital Twin", color: "#ff3333", definition: "物理实体或系统在数字空间中的精确虚拟映射，用于模拟和预测。", case: "在虚拟环境中模拟城市交通流，优化红绿灯配时方案。", metric: "预测准确率: 94%", trend: 82 },
+
+            { term: "Brain-Computer Interface (BCI)", color: "#ff00ff", definition: "允许大脑与外部设备直接通信的路径。", case: "帮助瘫痪患者通过脑电波控制外骨骼进行行走。", metric: "生活质量提升: Significant", trend: 60 },
+
+            { term: "Augmented Reality (AR)", color: "#00ffff", definition: "将数字信息（图像、数据、声音）叠加到现实世界的视图上。", case: "维修技师佩戴 AR 眼镜，在直视故障设备时看到叠加的操作指南。", metric: "操作错误率: -35%", trend: 78 },
+
+            { term: "NFT", color: "#ffee00", definition: "Non-Fungible Token。区块链上唯一的数字标识符，用于证明数字资产的所有权。", case: "赛博空间中虚拟地产和稀有数字艺术品的交易凭证。", metric: "资产流动性: High", trend: 25 },
+
+            { term: "Generative AI", color: "#00ff00", definition: "能够根据输入提示创造新的内容（文本、图像、音频、代码）的人工智能。", case: "根据简短的描述自动生成复杂的赛博朋克城市景观概念图。", metric: "创作效率: +500%", trend: 99 },
+
+            { term: "Ubiquitous Computing", color: "#ff3333", definition: "计算能力无处不在地融入日常生活环境和物体中，通常不可见。", case: "智能城市环境感知系统，自动调节整座城市的能源消耗。", metric: "环境集成度: 85%", trend: 70 },
+
+            { term: "Cybernetics", color: "#ff00ff", definition: "研究机器、生物体或组织中控制和通信过程的科学，常涉及生物与机械的融合。", case: "用增强型机械义肢替换受损的人体肢体，获得超越常人的力量。", metric: "机体增强率: >100%", trend: 90 },
+
+            { term: "Data Mining", color: "#00ffff", definition: "从海量数据集中发现模式、相关性和异常的过程。", case: "分析全球网络流量，识别潜在的企业间网络战行为模式。", metric: "模式识别率: 88%", trend: 75 },
+
+            { term: "Holo-Projection", color: "#ffee00", definition: "不需要佩戴设备就能在空气中显示三维立体图像的技术。", case: "城市中心巨大的全息广告牌，向路人展示动态的交互式广告。", metric: "视觉冲击力: High", trend: 60 },
+
+            { term: "Biickenomics", color: "#00ff00", definition: "结合生物识别技术和经济活动的系统，利用独特的生物特征进行身份验证和支付。", case: "通过虹膜扫描瞬间完成黑市交易的支付确认。", metric: "交易速度: <1s", trend: 80 },
+
+            { term: "Tech-Noir", color: "#ff3333", definition: "一种结合了黑色电影（Film Noir）元素和科幻技术背景的艺术风格和叙事基调。", case: "描述一个反乌托邦未来中，侦探在霓虹闪烁的雨夜调查涉及巨型企业的阴谋。", metric: "氛围感: Max", trend: 'N/A' }
+
+        ];
+
+
+
+        // --- 2. DOM 元素 ---
+
+        const coin = document.getElementById('coin');
+
+        const slot = document.getElementById('slot');
+
+        const knob = document.getElementById('knob');
+
+        const machine = document.getElementById('machine');
+
+        const chute = document.getElementById('chute');
+
+        const dome = document.getElementById('dome');
+
+        const terminalOutput = document.getElementById('terminalOutput');
+
+        
+
+        // Modal Elements
+
+        const modal = document.getElementById('modal');
+
+        const closeBtn = document.getElementById('closeBtn');
+
+        const cardTitle = document.getElementById('cardTitle');
+
+        const defBlock = document.getElementById('defBlock');
+
+        const caseBlock = document.getElementById('caseBlock');
+
+        const dataViz = document.getElementById('dataViz');
+
+
+
+        // --- 3. 状态管理 ---
+
+        let hasCredit = false;
+
+        let isProcessing = false;
+
+        let collectedItemsBatch = []; // 存储当前批次抽到的数据
+
+
+
+        // --- 4. 初始化装饰 ---
+
+        const colors = ['#ff00ff', '#00ffff', '#ffee00', '#00ff00'];
+
+        for(let i=0; i<8; i++){
+
+            let orb = document.createElement('div');
+
+            orb.className = 'orb-deco';
+
+            let size = Math.random() * 30 + 20;
+
+            orb.style.width = size + 'px';
+
+            orb.style.height = size + 'px';
+
+            orb.style.background = colors[Math.floor(Math.random() * colors.length)];
+
+            orb.style.left = Math.random() * 300 + 'px';
+
+            orb.style.top = Math.random() * 200 + 'px';
+
+            dome.appendChild(orb);
+
+        }
+
+
+
+        // --- 5. 交互逻辑：投币 ---
+
+        coin.addEventListener('dragstart', (e) => {
+
+            e.dataTransfer.setData('type', 'coin');
+
+            setTimeout(()=> coin.style.opacity = '0', 0);
+
+        });
+
+        coin.addEventListener('dragend', () => coin.style.opacity = '1');
+
+
+
+        slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('active'); });
+
+        slot.addEventListener('dragleave', () => slot.classList.remove('active'));
+
+        slot.addEventListener('drop', (e) => {
+
+            e.preventDefault();
+
+            if(!hasCredit && !isProcessing) {
+
+                hasCredit = true;
+
+                coin.style.visibility = 'hidden';
+
+                slot.classList.remove('active');
+
+            }
+
+        });
+
+
+
+        coin.addEventListener('click', () => {
+
+            if(!hasCredit && !isProcessing) {
+
+                hasCredit = true;
+
+                coin.style.visibility = 'hidden';
+
+                slot.classList.add('active');
+
+            }
+
+        });
+
+
+
+        // --- 6. 交互逻辑：抽奖 ---
+
+        knob.addEventListener('click', () => {
+
+            if(!hasCredit) {
+
+                machine.classList.add('shaking');
+
+                setTimeout(()=>machine.classList.remove('shaking'), 500);
+
+                return;
+
+            }
+
+            if(isProcessing) return;
+
+
+
+            isProcessing = true;
+
+            knob.style.transform = 'rotate(360deg)';
+
+            machine.classList.add('shaking');
+
+
+
+            setTimeout(() => {
+
+                knob.style.transform = 'rotate(0deg)';
+
+                machine.classList.remove('shaking');
+
+                dispenseCapsule();
+
+                hasCredit = false;
+
+                coin.style.visibility = 'visible';
+
+            }, 1000);
+
+        });
+
+
+
+        function dispenseCapsule() {
+
+            chute.innerHTML = ''; 
+
+            // 每次随机抽取一个，确保多样性
+
+            const randomItem = knowledgeBase[Math.floor(Math.random() * knowledgeBase.length)];
+
+            
+
+            const capsule = document.createElement('div');
+
+            capsule.className = 'capsule dropping';
+
+            capsule.style.background = `radial-gradient(circle at 30% 30%, #fff, ${randomItem.color})`;
+
+            capsule.style.boxShadow = `0 0 20px ${randomItem.color}`;
+
+            capsule.innerText = "?";
+
+            capsule.dataset.item = JSON.stringify(randomItem);
+
+
+
+            // 点击胶囊时才触发"打开"逻辑
+
+            capsule.addEventListener('click', () => {
+
+                const item = JSON.parse(capsule.dataset.item);
+
+                openCard(item);
+
+            });
+
+            chute.appendChild(capsule);
+
+            isProcessing = false;
+
+        }
+
+
+
+        // --- 7. 核心逻辑：打开卡片与数据聚合 ---
+
+        function openCard(item) {
+
+            modal.classList.add('active');
+
+            
+
+            // 将当前物品加入批次追踪
+
+            collectedItemsBatch.push(item);
+
+            
+
+            // 检查是否达到 10 个
+
+            if (collectedItemsBatch.length >= 10) {
+
+                generateAndDisplaySummary();
+
+                collectedItemsBatch = []; // 清空批次
+
+            }
+
+
+
+            // UI 展示逻辑 (保持不变)
+
+            cardTitle.innerText = "连接中...";
+
+            cardTitle.style.color = item.color;
+
+            defBlock.innerHTML = '<span class="cursor"></span>';
+
+            caseBlock.innerHTML = '';
+
+            dataViz.innerHTML = '分析数据库中...';
+
+
+
+            setTimeout(() => {
+
+                cardTitle.innerText = item.term;
+
+                typeWriter(item.definition, defBlock, () => {
+
+                    typeWriter(item.case, caseBlock, null);
+
+                });
+
+                renderDataViz(item);
+
+            }, 800);
+
+        }
+
+
+
+        // --- 新增：生成并显示汇总报告 ---
+
+        function generateAndDisplaySummary() {
+
+            const timestamp = new Date().toLocaleTimeString();
+
+            const items = collectedItemsBatch.map(i => i.term);
+
+            // 计算平均趋势值（排除 N/A）
+
+            const trends = collectedItemsBatch.map(i => i.trend).filter(t => typeof t === 'number');
+
+            const avgTrend = trends.length > 0 ? Math.round(trends.reduce((a, b) => a + b, 0) / trends.length) : '未知';
+
+
+
+            // 模拟生成的汇总文本 (模板化拼接以保证字数和相关性)
+
+            const summaryText = `
+
+                <span class="log-timestamp">[${timestamp}] 批次分析完成</span><br>
+
+                >> 系统已成功解析 10 个新的数据节点。本批次核心模块包括 ${items.slice(0, 3).join(', ')} 以及其他基础架构组件。
+
+                综合分析显示，这些技术正趋向于构建一个高度互联的数字生态，特别是在 ${items[4]} 和 ${items[7]} 领域的融合应用，
+
+                预示着下一代网络交互范式的转变。当前批次数据的平均发展趋势指数为 ${avgTrend}%，建议重点关注 ${items[items.length-1]} 带来的潜在安全波动。
+
+                数据流整合完毕，已归档至核心数据库。
+
+            `;
+
+
+
+            const logEntry = document.createElement('div');
+
+            logEntry.className = 'log-entry';
+
+            logEntry.innerHTML = summaryText;
+
+            terminalOutput.prepend(logEntry); // 新消息插到最上面
+
+        }
+
+
+
+
+
+        // --- 通用辅助函数 ---
+
+        function typeWriter(text, container, callback) {
+
+            let i = 0;
+
+            container.innerHTML = '';
+
+            const cursor = document.createElement('span');
+
+            cursor.className = 'cursor';
+
+            container.appendChild(cursor);
+
+            function type() {
+
+                if (i < text.length) {
+
+                    const char = text.charAt(i);
+
+                    cursor.before(char);
+
+                    i++;
+
+                    setTimeout(type, 20);
+
+                } else if(callback) callback();
+
+            }
+
+            type();
+
+        }
+
+
+
+        function renderDataViz(item) {
+
+            dataViz.innerHTML = '';
+
+            const title = document.createElement('div');
+
+            title.innerText = "影响评分";
+
+            title.style.color = '#888';
+
+            title.style.fontSize = '12px';
+
+            dataViz.appendChild(title);
+
+            const metric = document.createElement('div');
+
+            metric.innerText = item.metric;
+
+            metric.style.fontSize = '18px';
+
+            metric.style.fontWeight = 'bold';
+
+            metric.style.color = '#fff';
+
+            metric.style.margin = '10px 0';
+
+            dataViz.appendChild(metric);
+
+            const barContainer = document.createElement('div');
+
+            barContainer.className = 'progress-bar';
+
+            const fill = document.createElement('div');
+
+            fill.className = 'progress-fill';
+
+            fill.style.background = item.color;
+
+            barContainer.appendChild(fill);
+
+            dataViz.appendChild(barContainer);
+
+            setTimeout(() => {
+
+                const width = typeof item.trend === 'number' ? item.trend + '%' : '0%';
+
+                fill.style.width = width;
+
+            }, 100);
+
+        }
+
+
+
+        closeBtn.addEventListener('click', () => { modal.classList.remove('active'); isProcessing = false; });
+
+        modal.addEventListener('click', (e) => { if(e.target === modal) { modal.classList.remove('active'); isProcessing = false; } });
+
+    </script>
+
+</body>
+
+</html>
