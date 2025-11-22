@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI PM 农场：V11.0 知识库扩容版</title>
+    <style>
+        /* --- 1. 基础样式 --- */
+        :root {
+            --c-bg: #2c3e50;
+            --c-primary: #4A90E2;
+            --c-accent: #9b59b6;
+            --c-soil-empty: #E0C38C;
+            --c-soil-growing: #90EE90;
+            --c-soil-ripe: #FFD700;
+            --c-locked: #bdc3c7;
+        }
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--c-bg); color: #333; display: flex; justify-content: center; min-height: 100vh; }
+        
+        #game-app { width: 100%; max-width: 600px; background: #f4f6f9; display: flex; flex-direction: column; height: 100vh; position: relative; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+
+        /* --- 2. 顶部栏 --- */
+        .header { padding: 15px; background: white; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; z-index: 10; height: 100px;}
+        .user-block { display: flex; align-items: center; gap: 15px; cursor: pointer; padding: 5px; border-radius: 10px; transition: 0.2s; position: relative; }
+        .user-block:active { background: #f0f0f0; transform: scale(0.98); }
+        
+        .red-dot { position: absolute; top: 0; right: 0; width: 10px; height: 10px; background: #e74c3c; border-radius: 50%; border: 2px solid white; display: none; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        .red-dot.show { display: block; }
+
+        .avatar-container { position: relative; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; background: #ecf0f1; display: grid; place-items: center; font-size: 28px; z-index: 1; border: 2px solid white; position: relative; color: #95a5a6; overflow: hidden;}
+        
+        /* 边框特效 */
+        .frame-nature { position: absolute; inset: -6px; border-radius: 50%; border: 4px solid #4CAF50; box-shadow: 0 0 10px #81C784; z-index: 2; pointer-events: none; }
+        .frame-bunny { position: absolute; inset: -6px; border-radius: 50%; border: 4px solid #FF69B4; box-shadow: 0 0 10px #FFB6C1; z-index: 2; pointer-events: none; }
+        .frame-ice { position: absolute; inset: -5px; border-radius: 50%; border: 4px solid #B0E0E6; box-shadow: 0 0 15px #00BFFF; animation: pulse-ice 2s infinite; z-index: 2; pointer-events: none; }
+        .frame-cyber { position: absolute; inset: -5px; border-radius: 50%; border: 3px solid #0ff; box-shadow: 0 0 10px #0ff, inset 0 0 5px #0ff; z-index: 2; pointer-events: none; animation: spin 4s linear infinite; }
+        @keyframes pulse-ice { 0% {box-shadow: 0 0 5px #00BFFF;} 50% {box-shadow: 0 0 20px #00BFFF;} 100% {box-shadow: 0 0 5px #00BFFF;} }
+        @keyframes spin { 0% {filter:hue-rotate(0deg);} 100% {filter:hue-rotate(360deg);} }
+
+        .user-details { display: flex; flex-direction: column; justify-content: center; }
+        .feature-link { font-size: 10px; color: #d35400; background: #fff3e0; padding: 2px 6px; border-radius: 4px; margin-top: 4px; font-weight: bold; border: 1px solid #ffe0b2; }
+
+        .stats-col { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+        .res-pill { background: #fff; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: 700; border: 1px solid #ddd; min-width: 90px; text-align: center;}
+
+        /* --- 3. 农田 --- */
+        .farm-area { flex: 1; background: #eef2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .farm-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; width: 100%; max-width: 450px; }
+        .land { aspect-ratio: 1; border-radius: 8px; background: var(--c-soil-empty); position: relative; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.1); transition: 0.1s; overflow: hidden; }
+        .land:active { transform: scale(0.95); }
+        
+        .land[data-status="locked"] { background: var(--c-locked); cursor: not-allowed; box-shadow: none; opacity: 0.5; border: 1px dashed #7f8c8d; }
+        .land[data-status="buyable"] { background: #f1c40f; cursor: pointer; opacity: 1; border: 2px dashed #d35400; animation: pulse-buy 1s infinite; }
+        @keyframes pulse-buy { 50% { transform: scale(0.98); } }
+        
+        .land[data-status="1"] { background: var(--c-soil-growing); }
+        .land[data-status="2"] { background: var(--c-soil-ripe); border: 2px solid #fff; box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+
+        .buy-land-text { font-size: 10px; font-weight: bold; color: #d35400; text-align: center; line-height: 1.2; }
+        
+        /* 半熟皮肤效果 */
+        .crop-icon { font-size: 26px; transition: 0.3s; position: relative; z-index: 5;}
+        .growing-skin { clip-path: inset(0 0 40% 0); transform: translateY(8px) scale(0.8); filter: brightness(0.9) sepia(0.3); opacity: 0.9; }
+        /* 催熟闪电提示 */
+        .speedup-indicator { position: absolute; top: -5px; right: -5px; font-size: 12px; animation: blink 1s infinite; z-index: 10; background: white; border-radius: 50%; padding: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        .pop-anim { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from {transform: scale(0);} to {transform: scale(1);} }
+
+        /* --- 4. 底部栏 --- */
+        .toolbar { padding: 10px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; }
+        .tool-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px; cursor: pointer; opacity: 0.5; transition: 0.2s; position: relative; }
+        .tool-btn.active { opacity: 1; transform: translateY(-5px); color: var(--c-primary); }
+        .tool-btn .emoji { font-size: 28px; margin-bottom: 2px; }
+        .badge { position: absolute; top: 0; right: 20%; background: #e74c3c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; border: 2px solid white; }
+
+        /* --- 5. 弹窗通用 --- */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal.open { display: flex; }
+        .panel { background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 20px; max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; position: relative;}
+        
+        .tabs { display: flex; border-bottom: 1px solid #eee; margin-bottom: 10px; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: #999; font-weight: bold; font-size: 14px;}
+        .tab.active { color: var(--c-primary); border-bottom: 3px solid var(--c-primary); }
+        .tab-content { display: none; flex-direction: column; gap: 10px; }
+        .tab-content.active { display: flex; }
+
+        /* 功能列表弹窗 */
+        .feature-list { display: flex; flex-direction: column; gap: 10px; }
+        .feature-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fdfdfd; }
+        .feature-item.locked { background: #f0f0f0; color: #999; }
+        .feature-name { font-weight: bold; font-size: 14px; }
+        .feature-desc { font-size: 11px; color: #7f8c8d; margin-top: 2px; }
+        .feature-status { font-size: 12px; font-weight: bold; }
+        .status-unlocked { color: #27ae60; }
+        .status-locked { color: #c0392b; }
+
+        /* 购买数量 */
+        .qty-modal-content { text-align: center; padding: 10px; }
+        .qty-slider-val { font-size: 32px; font-weight: bold; color: var(--c-primary); margin: 10px 0; }
+        .qty-total-price { font-size: 18px; color: #d35400; margin-bottom: 20px; }
+        input[type=range] { width: 100%; margin: 15px 0; }
+
+        /* 个人中心 */
+        .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 10px 0; }
+        .avatar-opt { font-size: 32px; padding: 10px; background: #f8f9fa; border-radius: 12px; cursor: pointer; text-align: center; border: 2px solid transparent; position: relative; }
+        .avatar-opt.selected { background: #e3f2fd; border-color: var(--c-primary); transform: scale(1.1); }
+        .avatar-opt.locked { opacity: 0.4; pointer-events: none; filter: grayscale(1); background: #ecf0f1; }
+        .avatar-opt.locked::after { content: '🔒'; position: absolute; bottom: 2px; right: 2px; font-size: 10px; }
+
+        /* 列表项 */
+        .shop-item, .frame-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #eee; border-radius: 8px; }
+        .frame-item.locked { background: #f9f9f9; opacity: 0.7; filter: grayscale(1); }
+        .frame-preview { width: 40px; height: 40px; border-radius: 50%; background: #ddd; position: relative; border: 2px solid white; display: grid; place-items: center;}
+        .btn-buy, .btn-use { padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; border: none;}
+        .btn-buy { background: #f39c12; color: white; }
+        .btn-buy:disabled { background: #ccc; }
+        .btn-use { background: #eee; color: #666; }
+        .btn-use.active { background: var(--c-primary); color: white; cursor: default; }
+
+        /* 升级报告 */
+        .unlock-section { background: #fcf8e3; padding: 15px; border-radius: 10px; text-align: left; margin: 15px 0; border: 1px solid #faebcc; }
+        .unlock-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: #8a6d3b; }
+
+        /* 悬浮按钮 */
+        .quiz-btn { position: absolute; top: 115px; right: 15px; background: linear-gradient(135deg, #8e44ad, #9b59b6); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; box-shadow: 0 4px 10px rgba(155, 89, 182, 0.4); cursor: pointer; z-index: 20; animation: float 3s ease-in-out infinite; }
+        .float-actions { position: absolute; bottom: 20px; display: flex; gap: 10px; z-index: 20; }
+        .action-btn { border: none; padding: 10px 20px; border-radius: 25px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transform: scale(0); transition: 0.3s; display: none; }
+        .action-btn.show { transform: scale(1); display: block; }
+        @keyframes float { 0% {transform: translateY(0);} 50% {transform: translateY(-5px);} 100% {transform: translateY(0);} }
+
+        #toast { position: fixed; top: 15%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 10px 20px; border-radius: 30px; font-size: 13px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 200; font-weight: bold; width: max-content; }
+        textarea { width: 100%; height: 100px; padding: 12px; border: 2px solid #eee; border-radius: 10px; margin: 15px 0; font-family: inherit; resize: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-app">
+    <header class="header">
+        <div class="user-block" onclick="ui.openProfile()">
+            <div class="red-dot" id="profile-red-dot"></div>
+            <div class="avatar-container">
+                <div class="avatar" id="ui-avatar">👤</div>
+                <div id="ui-frame"></div>
+            </div>
+            <div class="user-details">
+                <div style="font-weight:bold; font-size:16px; color:#2c3e50;">产品经理</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; width: 100px;">
+                    <div id="ui-level" style="font-size:13px; color:#7f8c8d; font-weight:bold;">Lv.1</div>
+                </div>
+                <div class="feature-link" onclick="event.stopPropagation(); ui.openFeatures()">📜 已解锁功能</div>
+            </div>
+        </div>
+        <div class="stats-col">
+            <div class="res-pill" id="ui-money" style="color:#d35400; background:#fdf2e9; border-color:#f5c6cb;">💰 0</div>
+            <div class="res-pill" id="ui-exp" style="color:#2980b9; background:#ebf5fb; border-color:#aed6f1;">⭐ 0/100</div>
+        </div>
+    </header>
+
+    <button class="quiz-btn" onclick="quiz.start()">🧠 答题 (赚金币)</button>
+
+    <main class="farm-area">
+        <div class="farm-grid" id="farm-grid"></div>
+        <div class="float-actions">
+            <button class="action-btn" id="btn-auto-plant" style="background:#3498db" onclick="game.autoPlant()">✨ 一键播种</button>
+            <button class="action-btn" id="btn-auto-harvest" style="background:#2ecc71" onclick="game.autoHarvest()">⚡ 一键收割</button>
+        </div>
+    </main>
+
+    <footer class="toolbar">
+        <div class="tool-btn" onclick="ui.openShop()">
+            <span class="emoji">🏪</span><small>商店</small>
+        </div>
+        <div class="tool-btn active" id="tool-seed" onclick="game.selectTool('seed')">
+            <span class="emoji">🎒</span><small>播种</small>
+            <div class="badge" id="ui-seed-count">0</div>
+        </div>
+        <div class="tool-btn" id="tool-harvest" onclick="game.selectTool('harvest')">
+            <span class="emoji">🧤</span><small>收获</small>
+        </div>
+        <div class="tool-btn" id="tool-shovel" onclick="game.selectTool('shovel')">
+            <span class="emoji">🚜</span><small>铲除</small>
+        </div>
+    </footer>
+
+    <div class="modal" id="modal-shop">
+        <div class="panel">
+            <div class="tabs">
+                <div class="tab active" onclick="ui.switchTab('shop', 'seeds')" id="tab-seeds">🌱 种子</div>
+                <div class="tab" onclick="ui.switchTab('shop', 'skins')" id="tab-skins">🎨 皮肤 (Lv.5)</div>
+            </div>
+            <div class="tab-content active" id="list-seeds"></div>
+            <div class="tab-content" id="list-skins">
+                <div id="skin-items-container"></div>
+            </div>
+            <button onclick="ui.closeModals()" style="margin-top:15px; padding:10px; background:#eee; border:none; border-radius:8px;">关闭</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-buy-qty">
+        <div class="panel">
+            <h3 style="text-align:center; margin:0">采购详情</h3>
+            <div class="qty-modal-content">
+                <div id="buy-item-name" style="font-weight:bold; color:#555;">胡萝卜</div>
+                <input type="range" id="buy-range" min="1" max="50" value="1" oninput="ui.updateBuyCalc()">
+                <div class="qty-slider-val">x <span id="buy-qty-val">1</span></div>
+                <div class="qty-total-price">总价: <span id="buy-total-cost">10</span> 💰</div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="document.getElementById('modal-buy-qty').classList.remove('open')" style="flex:1; padding:10px; border-radius:8px; border:none;">取消</button>
+                    <button onclick="ui.confirmBuy()" style="flex:1; padding:10px; background:var(--c-primary); color:white; border-radius:8px; border:none; font-weight:bold;">确认支付</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-profile">
+        <div class="panel">
+            <h3 style="margin:0 0 15px 0; text-align:center;">👤 个人形象中心</h3>
+            <div class="tabs">
+                <div class="tab active" onclick="ui.switchTab('profile', 'avatar')" id="tab-avatar">🙂 头像</div>
+                <div class="tab" onclick="ui.switchTab('profile', 'frame')" id="tab-frame">🖼️ 边框</div>
+            </div>
+            <div class="tab-content active" id="panel-avatar">
+                <div id="avatar-list" class="avatar-grid"></div>
+            </div>
+            <div class="tab-content" id="panel-frame">
+                <div id="frame-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+            <button onclick="ui.closeModals()" style="margin-top:15px; padding:10px; background:#eee; border:none; border-radius:8px;">保存并关闭</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-features">
+        <div class="panel">
+            <h3 style="text-align:center; margin-bottom:15px">📜 农场功能全览</h3>
+            <div id="feature-list" class="feature-list"></div>
+            <button onclick="ui.closeModals()" style="margin-top:15px; padding:10px; background:#eee; border:none; border-radius:8px;">关闭</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-quiz">
+        <div class="panel">
+            <div style="background:#e1f5fe; color:#0277bd; padding:4px 8px; border-radius:4px; font-size:11px; display:inline-block; margin-bottom:5px;">PM Interview</div>
+            <div style="font-weight:bold; color:#2c3e50; margin:10px 0;" id="q-text">Loading...</div>
+            <textarea id="q-input" placeholder="作为高阶 PM，请给出至少20字的专业见解..."></textarea>
+            <div style="color:#d35400; font-size:12px; margin-bottom:10px;">🏆 奖励: <span id="q-reward"></span></div>
+            <button onclick="quiz.submit()" style="width:100%; padding:10px; background:var(--c-primary); color:white; border:none; border-radius:8px; font-weight:bold;">提交方案</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-levelup">
+        <div class="panel" style="text-align:center;">
+            <h2 style="color:#f1c40f; margin:0; text-shadow: 1px 1px 0 #e67e22;">🎉 LEVEL UP!</h2>
+            <p>晋升至 <span id="lvl-num" style="font-weight:bold; font-size:20px;">Lv.2</span></p>
+            <div class="unlock-section">
+                <div style="font-weight:bold; margin-bottom:10px; color:#333;">📊 晋升报告:</div>
+                <div id="lvl-unlock-list"></div>
+            </div>
+            <button onclick="ui.closeModals()" style="width:100%; padding:12px; background:#f39c12; color:white; border:none; border-radius:25px; font-weight:bold;">收下奖励</button>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-speedup">
+        <div class="panel">
+            <h3 style="text-align:center">⚡ 金币催熟</h3>
+            <p style="text-align:center">是否花费 <span id="speedup-cost" style="color:#d35400; font-weight:bold"></span> 金币立即收获？</p>
+            <div style="text-align:center; font-size:12px; color:#999; margin-bottom:15px;">(双倍种子价格)</div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="document.getElementById('modal-speedup').classList.remove('open')" style="flex:1; padding:10px; border-radius:8px; border:none;">取消</button>
+                <button onclick="game.confirmSpeedUp()" style="flex:1; padding:10px; background:var(--c-primary); color:white; border-radius:8px; border:none; font-weight:bold;">立即催熟</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+</div>
+
+<script>
+    /**
+     * --- 1. 数据配置 (Data) ---
+     */
+    const GAME_FEATURES = [
+        { lvl: 2, name: "土地扩建", desc: "每级自动解锁一块新土地 (Lv.2-10)" },
+        { lvl: 3, name: "金币催熟", desc: "付费立即收获任意作物 (双倍价格)" },
+        { lvl: 3, name: "自然头像框", desc: "解锁自然主题头像框" },
+        { lvl: 4, name: "一键播种", desc: "解放双手，批量种植" },
+        { lvl: 5, name: "皮肤商店", desc: "购买作物个性化皮肤" },
+        { lvl: 6, name: "萌兔头像框", desc: "解锁萌兔主题头像框" },
+        { lvl: 9, name: "凛冬头像框", desc: "解锁凛冬主题头像框" },
+        { lvl: 10, name: "金币买地", desc: "花费金币购买无限土地" }
+    ];
+
+    const FRAMES = [
+        { id: 'none',   name: '无边框',     class: '',            reqLvl: 1 },
+        { id: 'nature', name: '自然之息',   class: 'frame-nature',reqLvl: 3 },
+        { id: 'bunny',  name: '萌兔耳语',   class: 'frame-bunny', reqLvl: 6 },
+        { id: 'ice',    name: '凛冬将至',   class: 'frame-ice',   reqLvl: 9 },
+        { id: 'cyber',  name: '赛博未来',   class: 'frame-cyber', reqLvl: 12 }
+    ];
+
+    const LEVELS = {
+        1: { req: 100,  gift: 'carrot', count: 5,  qExp: 25, qMoney: 100 },
+        2: { req: 250,  gift: 'corn',   count: 4,  qExp: 50, qMoney: 200 },
+        3: { req: 500,  gift: 'corn',   count: 8,  qExp: 80, qMoney: 300 }, 
+        4: { req: 1000, gift: 'rose',   count: 5,  qExp: 150, qMoney: 500 },
+        5: { req: 1800, gift: 'rose',   count: 8,  qExp: 200, qMoney: 800 },
+        6: { req: 3000, gift: 'pump',   count: 5,  qExp: 300, qMoney: 1200 },
+        7: { req: 5000, gift: 'pump',   count: 10, qExp: 500, qMoney: 2000 },
+        8: { req: 8000, gift: 'chip',   count: 3,  qExp: 800, qMoney: 3000 }, 
+        9: { req: 12000,gift: 'chip',   count: 5,  qExp: 1000,qMoney: 5000 },
+        10:{ req: 20000,gift: 'brain',  count: 2,  qExp: 2000,qMoney: 8000 }
+    };
+
+    const CROPS = {
+        carrot: { id: 'carrot', name: '胡萝卜', cost: 10, exp: 10, time: 3000, reqLvl: 1 },
+        corn:   { id: 'corn',   name: '玉米',   cost: 50, exp: 30, time: 6000, reqLvl: 2 },
+        rose:   { id: 'rose',   name: '玫瑰',   cost: 120,exp: 80, time: 10000,reqLvl: 4 },
+        pump:   { id: 'pump',   name: '南瓜',   cost: 300,exp: 200,time: 20000,reqLvl: 6 },
+        chip:   { id: 'chip',   name: 'GPU芯片',cost: 1000,exp: 500,time: 40000,reqLvl: 8 },
+        brain:  { id: 'brain',  name: '神经网络',cost:3000,exp: 1500,time:60000,reqLvl: 10}
+    };
+
+    const SKINS = {
+        carrot: [{icon:'🥕',name:'默认',cost:0}, {icon:'🥗',name:'沙拉',cost:200}],
+        corn:   [{icon:'🌽',name:'默认',cost:0}, {icon:'🍿',name:'爆米花',cost:500}, {icon:'🌮',name:'玉米卷',cost:800}],
+        rose:   [{icon:'🌹',name:'默认',cost:0}, {icon:'💐',name:'花束',cost:1000}, {icon:'🥀',name:'黑玫瑰',cost:1500}],
+        pump:   [{icon:'🎃',name:'默认',cost:0}, {icon:'🥧',name:'南瓜派',cost:2000}, {icon:'👻',name:'幽灵',cost:3000}],
+        chip:   [{icon:'💾',name:'默认',cost:0}, {icon:'💽',name:'金手指',cost:5000}, {icon:'💎',name:'量子核',cost:8000}],
+        brain:  [{icon:'🧠',name:'默认',cost:0}, {icon:'🤖',name:'天网',cost:10000},{icon:'🌌',name:'宇宙脑',cost:20000}]
+    };
+
+    // 50+ 题库 (示例部分)
+    const RAW_QUESTIONS = [
+        "请简述 RAG 技术在解决大模型幻觉中的作用。",
+        "MoE 架构相比 Dense 模型在推理成本上的优势是什么？",
+        "如何设计一套有效的 AI Agent 记忆检索机制？",
+        "在 ToB 场景下，如何评估私有化模型的业务 ROI？",
+        "针对多模态模型，如何优化图文语义对齐的效果？",
+        "解释 RLHF 的核心步骤及其在模型对齐中的作用。",
+        "Transformer 架构中 Self-Attention 机制解决了 RNN 的什么痛点？",
+        "在大模型微调中，LoRA 相比全量微调有哪些优势？",
+        "如何利用 Chain-of-Thought (CoT) 提升模型的推理能力？",
+        "向量数据库 (Vector DB) 在大模型应用中的主要作用是什么？",
+        "如何通过用户调研确定 AI 产品的 MVP 功能边界？",
+        "在与算法工程师沟通时，如何准确描述业务需求的数学指标？",
+        "当模型输出不稳定时，产品侧有哪些兜底策略？",
+        "如何设计 Prompt 模板以提高模型输出的一致性？",
+        "AI 产品在冷启动阶段，如何获取高质量的种子数据？",
+        "请列举三种常见的 Prompt 攻击方式及其防御策略。",
+        "什么是 Context Window？它如何影响长文档处理体验？",
+        "如何衡量生成式 AI 产品的用户满意度 (CSAT)？",
+        "在 AIGC 版权问题上，产品经理需要注意哪些合规风险？",
+        "Agent 规划能力 (Planning) 的常见实现方式有哪些？",
+        "如何平衡模型响应速度 (Latency) 与生成质量？",
+        "什么是 Temperature 参数？它如何影响模型的创造性？",
+        "解释 Embedding 的概念及其在语义搜索中的应用。",
+        "Knowledge Graph (知识图谱) 如何增强 LLM 的事实准确性？",
+        "在 Copilot 类产品中，如何设计人机交互的'介入度'？",
+        "如何通过 AB 测试验证不同 Prompt 的效果？",
+        "什么是 Zero-shot, One-shot, Few-shot Learning？",
+        "在模型蒸馏 (Distillation) 中，Teacher 和 Student 模型的关系是什么？",
+        "如何评估一个 AI 产品的技术护城河？",
+        "解释 Token 的概念，以及它与单词数量的大致关系。",
+        "什么是 Hallucination (幻觉)？在医疗/金融领域如何风控？",
+        "如何设计一个基于 LLM 的自动化客服系统？",
+        "在 AI 产品迭代中，Bad Case 的收集与清洗流程是怎样的？",
+        "什么是 Multi-agent System？它适用于哪些复杂场景？",
+        "如何利用 AI 提升 B 端 SaaS 产品的操作效率？",
+        "解释 Diffusion Model 在图像生成中的基本原理。",
+        "在语音合成 (TTS) 产品中，如何优化情感表达的自然度？",
+        "什么是 Scaling Law？它对模型研发投入有何指导意义？",
+        "如何设计 AI 生成内容的水印机制？",
+        "在代码生成助手产品中，如何保障生成的代码安全性？",
+        "什么是 In-context Learning？",
+        "如何利用 Feedback Loop 持续优化模型效果？",
+        "在推荐系统中，大模型可以扮演什么角色？",
+        "解释 PPO (Proximal Policy Optimization) 算法的作用。",
+        "如何评估 RAG 系统的检索召回率与生成准确率？",
+        "什么是 Quantization (量化)？它如何帮助模型在端侧部署？",
+        "如何设计 AI 产品的隐私保护机制 (如 PII 过滤)？",
+        "在虚拟人产品中，如何实现实时的语音驱动口型？",
+        "什么是 AGI？目前的大模型距离 AGI 还有多远？",
+        "如何通过数据飞轮 (Data Flywheel) 建立产品优势？"
+    ];
+
+    const AVATARS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐯", "🦁", "🐮", "🐷"];
+
+    /**
+     * --- 2. 状态管理 ---
+     */
+    const state = {
+        player: { 
+            money: 0, exp: 0, level: 1, 
+            avatar: '👤', frame: 'none', unlockedFrames: ['none'], 
+            unlockedAvatars: [], hasNewItem: false 
+        },
+        inventory: { carrot: 5, corn:0, rose:0, pump:0, chip:0, brain:0 },
+        skinOwned: { carrot:[0], corn:[0], rose:[0], pump:[0], chip:[0], brain:[0] },
+        skinEquipped: { carrot:0, corn:0, rose:0, pump:0, chip:0, brain:0 },
+        lands: Array(18).fill(null).map((_, i) => ({ id: i, status: i<5 ? 0 : 'locked', crop: null, plantTime: 0 })),
+        tool: 'seed', selectedSeed: 'carrot',
+        
+        // 临时数据
+        buyTargetId: null, buyTargetCost: 0, buyQty: 1,
+        speedUpTargetId: null, speedUpCost: 0,
+        quizPool: [] // 洗牌后的题库
+    };
+
+    /**
+     * --- 3. 核心逻辑 ---
+     */
+    const game = {
+        init() {
+            game.shuffleQuiz(); // 初始化洗牌
+            game.updateLandLocks(); 
+            ui.renderGrid(); ui.updateHeader();
+            game.checkLevelUp();
+            setInterval(game.loop, 200);
+        },
+        
+        // 洗牌算法
+        shuffleQuiz() {
+            const pool = [...RAW_QUESTIONS];
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+            state.quizPool = pool;
+        },
+
+        loop() {
+            const now = Date.now();
+            let dirty=false; let ripe=0;
+            state.lands.forEach(l => {
+                if(l.status===1 && now-l.plantTime >= CROPS[l.crop].time) { l.status=2; dirty=true; }
+                if(l.status===2) ripe++;
+            });
+            if(dirty) ui.renderGrid();
+            document.getElementById('btn-auto-harvest').classList.toggle('show', ripe>0);
+            document.getElementById('btn-auto-plant').classList.toggle('show', state.player.level>=4);
+        },
+        
+        updateLandLocks() {
+            state.lands.forEach(l => {
+                const unlockCount = 5 + Math.max(0, state.player.level - 1);
+                if (l.id < unlockCount) {
+                    if (l.status === 'locked' || l.status === 'buyable') l.status = 0;
+                } else {
+                    if (state.player.level >= 10 && l.status === 'locked') l.status = 'buyable';
+                }
+            });
+        },
+
+        handleClick(l) {
+            if (l.status === 'buyable') {
+                if (state.player.money >= 5000 && confirm("花费 5000 金币购买这块土地？")) {
+                    state.player.money -= 5000;
+                    l.status = 0;
+                    ui.updateHeader(); ui.renderGrid(); ui.toast("扩建成功！");
+                } else if(state.player.money < 5000) ui.toast("金币不足 (需5000)");
+                return;
+            }
+            if (l.status === 'locked') return ui.toast("等级不足，无法解锁");
+
+            if (state.tool === 'seed') game.plant(l);
+            else if (state.tool === 'harvest') game.harvest(l);
+            else if (state.tool === 'shovel') { 
+                if(l.status===1 || l.status===2) { l.status=0; l.crop=null; ui.renderGrid(); }
+            }
+            else if (l.status === 1) game.trySpeedUp(l);
+        },
+
+        plant(land) {
+            if(land.status!==0) return;
+            const seed = state.selectedSeed;
+            if(state.inventory[seed]<=0) {
+                if(state.player.money===0 && seed==='carrot') return ui.toast('没钱买种子？快去答题！');
+                return ui.toast('库存不足，请去商店');
+            }
+            if(state.player.level < CROPS[seed].reqLvl) return ui.toast('等级不足');
+            state.inventory[seed]--;
+            land.status=1; land.crop=seed; land.plantTime=Date.now();
+            ui.updateHeader(); ui.renderGrid();
+        },
+
+        harvest(land) {
+            if(land.status!==2) return;
+            const c = CROPS[land.crop];
+            game.addExp(c.exp);
+            land.status=0; land.crop=null;
+            ui.updateHeader(); ui.renderGrid();
+            ui.toast(`+${c.exp} Exp`);
+        },
+
+        trySpeedUp(land) {
+            // Lv.3 全局解锁催熟
+            if (state.player.level < 3) {
+                return ui.toast("Lv.3 解锁金币催熟功能");
+            }
+            const c = CROPS[land.crop];
+            state.speedUpTargetId = land.id;
+            state.speedUpCost = c.cost * 2;
+            document.getElementById('speedup-cost').innerText = state.speedUpCost;
+            document.getElementById('modal-speedup').classList.add('open');
+        },
+        confirmSpeedUp() {
+            if (state.player.money >= state.speedUpCost) {
+                state.player.money -= state.speedUpCost;
+                const l = state.lands[state.speedUpTargetId];
+                l.status = 2;
+                ui.closeModals();
+                ui.updateHeader(); ui.renderGrid(); ui.toast("⚡ 催熟成功！");
+            } else {
+                ui.toast("金币不足");
+            }
+        },
+
+        addExp(v) {
+            state.player.exp += v;
+            game.checkLevelUp();
+            ui.updateHeader();
+        },
+
+        checkLevelUp() {
+            const req = LEVELS[state.player.level].req;
+            if(state.player.exp >= req) {
+                state.player.level++;
+                state.player.exp -= req;
+                game.updateLandLocks();
+
+                const cfg = LEVELS[state.player.level];
+                const unlocks = [];
+
+                // 土地
+                if(state.player.level <= 10) unlocks.push("🚜 土地扩建: +1 块");
+                if(state.player.level === 10) unlocks.push("💰 开启金币买地功能");
+
+                // 赠品
+                if(cfg && cfg.gift) {
+                    state.inventory[cfg.gift] = (state.inventory[cfg.gift]||0) + cfg.count;
+                    unlocks.push(`🎁 赠送: ${CROPS[cfg.gift].name} x${cfg.count}`);
+                }
+
+                // 头像
+                if(state.player.level % 2 === 0) {
+                    const avaIdx = (state.player.level / 2) - 1;
+                    if (AVATARS[avaIdx]) {
+                        state.player.unlockedAvatars.push(AVATARS[avaIdx]);
+                        state.player.hasNewItem = true;
+                        unlocks.push(`🦁 新头像: [${AVATARS[avaIdx]}]`);
+                    }
+                }
+
+                // 边框
+                const newFrame = FRAMES.find(f => f.reqLvl === state.player.level);
+                if(newFrame) {
+                    state.player.unlockedFrames.push(newFrame.id);
+                    state.player.hasNewItem = true;
+                    unlocks.push(`🖼️ 新边框: [${newFrame.name}]`);
+                }
+
+                // 功能
+                if(state.player.level === 3) unlocks.push("⚡ 功能解锁: 金币催熟");
+                if(state.player.level === 4) unlocks.push("✨ 功能解锁: 一键播种");
+                if(state.player.level === 5) unlocks.push("🎨 功能解锁: 皮肤商店");
+
+                document.getElementById('lvl-num').innerText = `Lv.${state.player.level}`;
+                const list = document.getElementById('lvl-unlock-list');
+                list.innerHTML = '';
+                unlocks.forEach(txt => {
+                    const d = document.createElement('div');
+                    d.className = 'unlock-item'; d.innerHTML = `✅ ${txt}`;
+                    list.appendChild(d);
+                });
+                document.getElementById('modal-levelup').classList.add('open');
+                ui.updateHeader();
+            }
+        },
+        
+        autoPlant() {
+            const s = state.selectedSeed; let c = state.inventory[s];
+            if(c<=0) return ui.toast('库存不足');
+            state.lands.forEach(l=>{ if(l.status===0 && c>0){ game.plant(l); c=state.inventory[s]; }});
+        },
+        autoHarvest() { state.lands.forEach(l=>{ if(l.status===2) game.harvest(l); }) },
+        selectTool(t) {
+            state.tool = t;
+            document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+            document.getElementById('tool-'+t).classList.add('active');
+        }
+    };
+
+    /**
+     * --- 4. 题库逻辑 (抽题) ---
+     */
+    const quiz = {
+        start() {
+            if (state.quizPool.length === 0) {
+                alert("🎉 恭喜！你已通关所有考核题目！题库将重置。");
+                game.shuffleQuiz();
+            }
+            // 取出最后一个并删除 (pop)
+            const q = state.quizPool.pop();
+            
+            const cfg = LEVELS[state.player.level] || {qExp:2000, qMoney:8000};
+            document.getElementById('q-text').innerText = q;
+            document.getElementById('q-reward').innerText = `${cfg.qMoney}💰 + ${cfg.qExp}⭐`;
+            document.getElementById('q-input').value = '';
+            document.getElementById('modal-quiz').classList.add('open');
+        },
+        submit() {
+            const v = document.getElementById('q-input').value.trim();
+            if(v.length < 10) return alert("回答太简略 (>10字)"); // 稍微降低门槛方便测试
+            const cfg = LEVELS[state.player.level] || {qExp:2000, qMoney:8000};
+            state.player.money += cfg.qMoney;
+            game.addExp(cfg.qExp);
+            ui.closeModals();
+            ui.toast(`回答精彩！+${cfg.qMoney}💰`);
+        }
+    };
+
+    /**
+     * --- 5. UI逻辑 ---
+     */
+    const ui = {
+        renderGrid() {
+            const el = document.getElementById('farm-grid'); el.innerHTML='';
+            state.lands.forEach(l => {
+                const d = document.createElement('div');
+                d.className = 'land'; d.dataset.status = l.status;
+                d.onclick = () => game.handleClick(l);
+
+                if (l.status === 'buyable') {
+                    d.innerHTML = `<div class="buy-land-text">土地出售<br>5000💰</div><button class="btn-buy" style="font-size:10px;padding:2px 5px;margin-top:2px;">购买</button>`;
+                } 
+                else if (l.status === 'locked') d.innerHTML = `<div style="font-size:16px;opacity:0.5">🔒</div>`;
+                else if (l.status === 1) {
+                    const icon = SKINS[l.crop][state.skinEquipped[l.crop]].icon;
+                    // Lv3 可催熟
+                    const canSpeed = state.player.level >= 3;
+                    const speedHtml = canSpeed ? `<div class="speedup-indicator">⚡</div>` : '';
+                    d.innerHTML = `<div class="crop-icon pop-anim growing-skin">${icon}</div>${speedHtml}`;
+                }
+                else if (l.status === 2) {
+                    const icon = SKINS[l.crop][state.skinEquipped[l.crop]].icon;
+                    d.innerHTML = `<div class="crop-icon pop-anim">${icon}</div>`;
+                }
+                el.appendChild(d);
+            });
+        },
+        updateHeader() {
+            document.getElementById('ui-money').innerText=`💰 ${state.player.money}`;
+            const max = LEVELS[state.player.level] ? LEVELS[state.player.level].req : 'Max';
+            document.getElementById('ui-exp').innerText=`⭐ ${state.player.exp}/${max}`;
+            document.getElementById('ui-level').innerText=`Lv.${state.player.level}`;
+            document.getElementById('ui-avatar').innerText=state.player.avatar;
+            document.getElementById('ui-seed-count').innerText=state.inventory[state.selectedSeed]||0;
+            
+            const f = FRAMES.find(fr=>fr.id===state.player.frame);
+            document.getElementById('ui-frame').className = f ? f.class : '';
+            
+            const dot = document.getElementById('profile-red-dot');
+            if(state.player.hasNewItem) dot.classList.add('show');
+            else dot.classList.remove('show');
+        },
+
+        // 商店
+        openShop() { ui.switchTab('shop', 'seeds'); document.getElementById('modal-shop').classList.add('open'); },
+        initBuy(id, singleCost, name) {
+            state.buyTargetId = id; state.buyTargetCost = singleCost; state.buyQty = 1;
+            document.getElementById('buy-item-name').innerText = name;
+            document.getElementById('buy-range').value = 1;
+            ui.updateBuyCalc();
+            document.getElementById('modal-buy-qty').classList.add('open');
+        },
+        updateBuyCalc() {
+            const q = document.getElementById('buy-range').value;
+            state.buyQty = parseInt(q);
+            document.getElementById('buy-qty-val').innerText = q;
+            document.getElementById('buy-total-cost').innerText = state.buyTargetCost * q;
+        },
+        confirmBuy() {
+            const total = state.buyTargetCost * state.buyQty;
+            if (state.player.money >= total) {
+                state.player.money -= total;
+                state.inventory[state.buyTargetId] += state.buyQty;
+                state.selectedSeed = state.buyTargetId; game.selectTool('seed');
+                ui.closeModals(); ui.updateHeader(); ui.toast(`购买成功`);
+            } else ui.toast("金币不足");
+        },
+
+        // 皮肤
+        buySkin(cid, idx, cost) {
+            if(state.player.money >= cost) {
+                state.player.money -= cost;
+                state.skinOwned[cid].push(idx);
+                ui.equipSkin(cid, idx);
+                ui.updateHeader(); ui.toast('皮肤获得！');
+            } else ui.toast('金币不足');
+        },
+        equipSkin(cid, idx) { state.skinEquipped[cid]=idx; ui.switchTab('shop', 'skins'); ui.renderGrid(); },
+
+        // 个人中心
+        openProfile() {
+            state.player.hasNewItem = false; ui.updateHeader();
+            ui.renderAvatars(); ui.renderFrames();
+            ui.switchTab('profile', 'avatar');
+            document.getElementById('modal-profile').classList.add('open');
+        },
+        renderAvatars() {
+            const el=document.getElementById('avatar-list'); el.innerHTML='';
+            const defDiv=document.createElement('div');
+            defDiv.className=`avatar-opt ${state.player.avatar==='👤'?'selected':''}`;
+            defDiv.innerText='👤';
+            defDiv.onclick=()=>{state.player.avatar='👤';ui.renderAvatars();ui.updateHeader();};
+            el.appendChild(defDiv);
+
+            AVATARS.forEach(a=>{
+                const unlocked = state.player.unlockedAvatars.includes(a);
+                const d=document.createElement('div'); 
+                d.className=`avatar-opt ${!unlocked?'locked':''} ${state.player.avatar===a?'selected':''}`;
+                d.innerText=a; 
+                if(unlocked) d.onclick=()=>{ state.player.avatar=a; ui.renderAvatars(); ui.updateHeader(); };
+                el.appendChild(d);
+            });
+        },
+        renderFrames() {
+            const el=document.getElementById('frame-list'); el.innerHTML='';
+            FRAMES.forEach(f=>{
+                const unlock = state.player.unlockedFrames.includes(f.id);
+                const equip = state.player.frame===f.id;
+                const d=document.createElement('div'); d.className=`frame-item ${!unlock?'locked':''}`;
+                let btn='';
+                if(equip) btn=`<button class="btn-use active">使用中</button>`;
+                else if(unlock) btn=`<button class="btn-use" onclick="ui.useFrame('${f.id}')">佩戴</button>`;
+                else btn=`<span style="font-size:12px;color:#e74c3c">Lv.${f.reqLvl} 解锁</span>`;
+                d.innerHTML=`<div style="display:flex;align-items:center"><div class="frame-preview ${f.class}">${state.player.avatar}</div><div style="margin-left:10px;font-weight:bold">${f.name}</div></div>${btn}`;
+                el.appendChild(d);
+            });
+        },
+        useFrame(fid) { state.player.frame=fid; ui.renderFrames(); ui.updateHeader(); },
+
+        // 功能全览
+        openFeatures() {
+            const list = document.getElementById('feature-list'); list.innerHTML='';
+            GAME_FEATURES.forEach(f => {
+                const unlocked = state.player.level >= f.lvl;
+                const d = document.createElement('div');
+                d.className = `feature-item ${!unlocked?'locked':''}`;
+                const status = unlocked ? '<span class="status-unlocked">✅ 已解锁</span>' : `<span class="status-locked">🔒 Lv.${f.lvl}</span>`;
+                d.innerHTML = `
+                    <div>
+                        <div class="feature-name">${f.name}</div>
+                        <div class="feature-desc">${f.desc}</div>
+                    </div>
+                    <div class="feature-status">${status}</div>
+                `;
+                list.appendChild(d);
+            });
+            document.getElementById('modal-features').classList.add('open');
+        },
+
+        switchTab(ctx, tab) {
+            document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            if(ctx==='shop') {
+                document.getElementById(tab==='seeds'?'list-seeds':'list-skins').classList.add('active');
+                if(tab==='seeds') ui.renderSeeds(); else ui.renderSkins();
+            } else {
+                document.getElementById(`panel-${tab}`).classList.add('active');
+            }
+        },
+        renderSeeds() {
+            const list = document.getElementById('list-seeds'); list.innerHTML='';
+            Object.values(CROPS).forEach(c => {
+                const locked = state.player.level < c.reqLvl;
+                const div = document.createElement('div'); div.className='shop-item';
+                div.style.opacity = locked ? 0.6 : 1;
+                div.innerHTML = `
+                    <div><span style="font-size:20px">${SKINS[c.id][0].icon}</span> <b>${c.name}</b> <small>Lv.${c.reqLvl}</small><br>
+                    <small style="color:#666">单价:${c.cost}</small></div>
+                    <button class="btn-buy" ${locked?'disabled':''} onclick="ui.initBuy('${c.id}', ${c.cost}, '${c.name}')">购买</button>
+                `;
+                list.appendChild(div);
+            });
+        },
+        renderSkins() {
+            const con = document.getElementById('skin-items-container'); con.innerHTML='';
+            if(state.player.level<5) return con.innerHTML='<div style="text-align:center;padding:20px;color:#999">Lv.5 解锁皮肤商店</div>';
+            Object.keys(SKINS).forEach(cid => {
+                if(state.player.level < CROPS[cid].reqLvl) return;
+                const title=document.createElement('div'); title.innerHTML=`<b>${CROPS[cid].name}系列</b>`; title.style.marginTop='10px';
+                con.appendChild(title);
+                SKINS[cid].forEach((sk, idx) => {
+                    if(idx===0 && sk.cost===0) return;
+                    const owned = state.skinOwned[cid].includes(idx);
+                    const equipped = state.skinEquipped[cid]===idx;
+                    const div=document.createElement('div'); div.className='shop-item';
+                    let btn = '';
+                    if(equipped) btn=`<span style="color:green;font-size:12px;font-weight:bold">已装备</span>`;
+                    else if(owned) btn=`<button class="btn-buy btn-equip" onclick="ui.equipSkin('${cid}',${idx})">装备</button>`;
+                    else btn=`<button class="btn-buy" onclick="ui.buySkin('${cid}',${idx},${sk.cost})">${sk.cost}💰</button>`;
+                    div.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><span style="font-size:24px">${sk.icon}</span><div>${sk.name}</div></div>${btn}`;
+                    con.appendChild(div);
+                });
+            });
+        },
+        
+        closeModals() { document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open')); },
+        toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,2000); }
+    };
+
+    game.init();
+</script>
+</body>
+</html>
