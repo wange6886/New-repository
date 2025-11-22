@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>哔哩哔哩 (゜-゜)つロ 干杯~-bilibili</title>
+    <style>
+        /* --- 全局重置与变量 --- */
+        :root {
+            --bili-pink: #FB7299;
+            --bili-blue: #00AEEC;
+            --text-main: #18191C;
+            --text-gray: #9499A0;
+            --bg-gray: #F1F2F3;
+            --card-bg: #FFFFFF;
+            --header-height: 64px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-gray);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; cursor: pointer; }
+        ul { list-style: none; }
+
+        /* --- 公用工具类 --- */
+        .container {
+            max-width: 1400px; /* 适配大屏 */
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            vertical-align: middle;
+        }
+
+        /* --- 顶部导航栏 --- */
+        .header {
+            background: #fff;
+            height: var(--header-height);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* B站 Logo 样式模拟 */
+        .logo {
+            font-size: 0;
+            cursor: pointer;
+        }
+        .logo svg {
+            height: 35px;
+            width: auto;
+            fill: var(--bili-pink);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .nav-links li:hover { color: var(--bili-blue); cursor: pointer; }
+
+        .search-bar {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 40px;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            height: 40px;
+            background: #F6F7F8;
+            border: 1px solid #E3E5E7;
+            border-radius: 8px;
+            padding: 0 40px 0 15px;
+            font-size: 14px;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+        .search-input:focus {
+            background: #fff;
+            border-color: #C0C4CC;
+            outline: none;
+        }
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #ddd;
+            border: 2px solid #fff;
+            cursor: pointer;
+        }
+        .upload-btn {
+            background: var(--bili-pink);
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .upload-btn:hover { background: #FF85AD; }
+
+        /* --- 首页内容区 --- */
+        .main-content {
+            padding: 30px 0;
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* 模拟Banner */
+        .banner-placeholder {
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(90deg, #ec698f, #fa8da6);
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.8);
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* 视频网格 */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        /* 视频卡片 */
+        .video-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .video-card:hover .cover-img {
+            transform: scale(1.02); /* 轻微放大 */
+        }
+
+        .card-cover {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 */
+            border-radius: 10px;
+            overflow: hidden;
+            background: #e7e7e7;
+        }
+        .cover-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        .card-stats {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px 8px 8px;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            color: #fff;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .card-info {
+            padding-top: 10px;
+        }
+        .card-title {
+            font-size: 15px;
+            line-height: 22px;
+            height: 44px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            color: var(--text-main);
+            margin-bottom: 6px;
+            transition: color 0.2s;
+        }
+        .video-card:hover .card-title {
+            color: var(--bili-blue);
+        }
+        .card-uploader {
+            font-size: 12px;
+            color: var(--text-gray);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .up-icon {
+            font-size: 14px;
+            border: 1px solid var(--text-gray);
+            border-radius: 4px;
+            padding: 0 2px;
+            transform: scale(0.8);
+            transform-origin: left;
+        }
+
+        /* --- 视频详情页 --- */
+        .detail-page {
+            display: none; /* 默认隐藏 */
+            padding-top: 30px;
+        }
+        .detail-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        .video-player-area {
+            background: #000;
+            width: 100%;
+            aspect-ratio: 16/9;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            position: relative;
+        }
+        .fake-play-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .fake-play-btn svg { fill: #fff; width: 30px; height: 30px; margin-left: 5px; }
+
+        .video-header { margin-bottom: 20px; }
+        .video-h1 { font-size: 22px; font-weight: 500; margin-bottom: 10px; }
+        .video-meta { font-size: 13px; color: var(--text-gray); display: flex; gap: 20px; }
+
+        .toolbar {
+            border-bottom: 1px solid #E3E5E7;
+            padding: 15px 0;
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #505050;
+            font-size: 15px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .action-btn svg {
+            width: 28px;
+            height: 28px;
+            fill: #757575;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .action-btn:hover { color: var(--bili-blue); }
+        .action-btn:hover svg { fill: var(--bili-blue); }
+
+        /* 激活状态 */
+        .action-btn.active { color: var(--bili-pink); }
+        .action-btn.active svg {
+            fill: var(--bili-pink);
+            transform: scale(1.2);
+        }
+
+        .recommend-list h3 { font-size: 16px; margin-bottom: 15px; }
+        .rec-card {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        .rec-cover {
+            width: 140px;
+            height: 80px;
+            border-radius: 6px;
+            background: #ddd;
+            overflow: hidden;
+        }
+        .rec-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .rec-info { flex: 1; }
+        .rec-title { font-size: 14px; line-height: 20px; height: 40px; overflow: hidden; margin-bottom: 6px;}
+        .rec-up { font-size: 12px; color: var(--text-gray); }
+
+        /* 响应式适配 */
+        @media (max-width: 1000px) {
+            .detail-layout { grid-template-columns: 1fr; }
+            .search-bar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-left">
+            <div class="logo" onclick="goHome()">
+                <svg viewBox="0 0 1024 450">
+                    <path d="M422.8 258.8c0-20.6-10.9-32.4-32.1-32.4h-77.8v67h75.9c23.1 0 34-12.6 34-34.6z m260.4 0c0-20.6-10.9-32.4-32.1-32.4H574v67h75.1c24.4 0 34.5-12.6 34.5-34.6zM312.9 149.6H407c39.3 0 71.9 20.4 71.9 61.8 0 18.5-7.3 33.2-19.7 43.6 19.4 9.5 30.8 26.7 30.8 50.6 0 44.2-33.2 66.2-80.2 66.2H280.3V149.6h32.6zm261 0H670c39.3 0 71.9 20.4 71.9 61.8 0 18.5-7.3 33.2-19.7 43.6 19.4 9.5 30.8 26.7 30.8 50.6 0 44.2-33.2 66.2-80.2 66.2H541.3V149.6h32.6zM815 149.6h32.6v222.2H815V149.6z m-704.1 0h32.6v222.2H110.9V149.6z"></path>
+                </svg>
+            </div>
+            <ul class="nav-links">
+                <li>首页</li>
+                <li>番剧</li>
+                <li>直播</li>
+                <li>游戏中心</li>
+                <li>会员购</li>
+                <li>漫画</li>
+                <li>赛事</li>
+            </ul>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="高阶AI产品经理的日常">
+            <div class="search-icon">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <div class="avatar">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" style="width:100%; height:100%; border-radius:50%;" alt="">
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; font-size:12px; color:var(--text-gray); cursor:pointer;">
+                <svg class="icon" style="width:24px; height:24px; fill:#fb7299;" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <span>大会员</span>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; font-size:12px; color:var(--text-gray); cursor:pointer;">
+                 <svg class="icon" style="width:24px; height:24px;" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                 <span>动态</span>
+            </div>
+            <div class="upload-btn">投稿</div>
+        </div>
+    </header>
+
+    <main id="home-page" class="container main-content">
+        
+        <div class="banner-placeholder">
+            (这里是首页 Banner 广告位 / 推荐活动)
+        </div>
+
+        <div class="video-grid" id="video-grid">
+            </div>
+    </main>
+
+    <main id="detail-page" class="container detail-page">
+        <div class="video-header">
+            <h1 class="video-h1" id="d-title">视频标题加载中...</h1>
+            <div class="video-meta">
+                <span id="d-views">播放量 --</span>
+                <span id="d-danmaku">弹幕 --</span>
+                <span id="d-date">2023-11-12 12:00:00</span>
+                <span style="color:#fb7299">🚫 未经作者授权，禁止转载</span>
+            </div>
+        </div>
+
+        <div class="detail-layout">
+            <div class="left-column">
+                <div class="video-player-area">
+                    <div class="fake-play-btn">
+                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                    </div>
+                    <span style="position:absolute; bottom:20px; font-size:14px;">模拟播放器界面 (点击无法真正播放)</span>
+                </div>
+
+                <div class="toolbar">
+                    <div class="action-btn" id="btn-like" onclick="toggleAction('like')">
+                        <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z"></path></svg>
+                        <span id="count-like">点赞</span>
+                    </div>
+                    <div class="action-btn" id="btn-coin" onclick="toggleAction('coin')">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.95V5h-2.93v2.63c-1.71.65-3.08 1.64-3.08 3.17 0 1.84 1.5 2.57 4.38 3.3 2.04.5 2.46 1.15 2.46 1.94 0 .93-.9 1.56-2.41 1.56-1.74 0-2.32-.89-2.41-1.91H7.33c.1 1.86 1.31 2.94 3.06 3.22V21h2.93v-2.65c2 .48 3.67-1.46 3.67-3.48 0-1.99-1.7-2.84-4.68-3.59z"></path></svg>
+                        <span id="count-coin">投币</span>
+                    </div>
+                    <div class="action-btn" id="btn-fav" onclick="toggleAction('fav')">
+                        <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
+                        <span id="count-fav">收藏</span>
+                    </div>
+                    <div class="action-btn">
+                        <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                        <span>转发</span>
+                    </div>
+                </div>
+                
+                <div style="padding-bottom: 50px; color: #18191c; line-height: 1.8;">
+                    <h3>视频简介</h3>
+                    <p style="margin-top: 10px; font-size: 14px; color: #61666d;">
+                        这是一个完全由 HTML/CSS/JS 编写的 Bilibili 网页复刻版。
+                        <br>
+                        本页面演示了：网格布局、悬停效果、单页应用路由逻辑以及交互动画。
+                        <br>
+                        <br>
+                        关注我，获取更多前端硬核资源！
+                    </p>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="recommend-list">
+                    <h3>接下来播放</h3>
+                    <div id="rec-list">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- 模拟数据 ---
+        const mockVideos = Array.from({ length: 12 }, (_, i) => ({
+            id: i,
+            title: [
+                "【4K】耗时三个月，我还原了赛博朋克2077中的不夜城！",
+                "当你试图在家里解释什么是“单例模式”...",
+                "全网最详细！从零开始手写一个操作系统",
+                "猫咪：虽然我可爱，但我真的很能吃",
+                "千万别买这种显示器！血泪教训分享",
+                "2024年了，还有人在用 jQuery 吗？",
+                "原神：新版本深渊满星攻略，平民阵容推荐",
+                "Vlog: 程序员的一天，加班到凌晨三点的真实记录",
+                "【如果历史是一群喵】第108回：乱世终结",
+                "罗翔老师：张三这次真的进去了",
+                "手工耿：我做了一个全自动洗头机",
+                "何同学：我用一万张照片复原了这所大学"
+            ][i] || `未命名视频 ${i}`,
+            author: `UP主_No.${i + 1}`,
+            views: Math.floor(Math.random() * 1000) + '万',
+            danmaku: Math.floor(Math.random() * 5000),
+            time: `${Math.floor(Math.random() * 10) + 1}:${Math.floor(Math.random() * 50) + 10}`,
+            cover: `https://picsum.photos/400/225?random=${i}` // 随机封面
+        }));
+
+        // --- 初始化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGrid();
+            renderRecList();
+        });
+
+        // --- 渲染首页网格 ---
+        function renderGrid() {
+            const grid = document.getElementById('video-grid');
+            grid.innerHTML = mockVideos.map(v => `
+                <div class="video-card" onclick="goDetail(${v.id})">
+                    <div class="card-cover">
+                        <img src="${v.cover}" class="cover-img" alt="${v.title}">
+                        <div class="card-stats">
+                            <div style="display:flex; gap:15px;">
+                                <div class="stat-item">
+                                    <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                                    <span>${v.views}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 10H4V8h16v8z"></path></svg>
+                                    <span>${v.danmaku}</span>
+                                </div>
+                            </div>
+                            <span>${v.time}</span>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-title">${v.title}</div>
+                        <div class="card-uploader">
+                            <span class="up-icon">UP</span>
+                            <span>${v.author}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- 渲染侧边推荐列表 ---
+        function renderRecList() {
+            const list = document.getElementById('rec-list');
+            // 取前5个作为推荐
+            list.innerHTML = mockVideos.slice(0, 5).map(v => `
+                <div class="rec-card" onclick="goDetail(${v.id})">
+                    <div class="rec-cover">
+                        <img src="${v.cover}" alt="">
+                    </div>
+                    <div class="rec-info">
+                        <div class="rec-title">${v.title}</div>
+                        <div class="rec-up">${v.author}</div>
+                        <div class="rec-up" style="margin-top:4px;">${v.views}播放</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- 路由/页面切换 ---
+        function goDetail(id) {
+            const video = mockVideos[id] || mockVideos[0];
+            
+            // 填充详情页数据
+            document.getElementById('d-title').innerText = video.title;
+            document.getElementById('d-views').innerText = video.views + "播放";
+            document.getElementById('d-danmaku').innerText = video.danmaku + "弹幕";
+            
+            // 重置按钮状态
+            resetActions();
+
+            // 切换视图
+            document.getElementById('home-page').style.display = 'none';
+            document.getElementById('detail-page').style.display = 'block';
+            
+            // 滚动到顶部
+            window.scrollTo(0, 0);
+        }
+
+        function goHome() {
+            document.getElementById('detail-page').style.display = 'none';
+            document.getElementById('home-page').style.display = 'block';
+            window.scrollTo(0, 0);
+        }
+
+        // --- 一键三连交互 ---
+        const counts = { like: 1234, coin: 666, fav: 888 };
+
+        function toggleAction(type) {
+            const btn = document.getElementById(`btn-${type}`);
+            const countSpan = document.getElementById(`count-${type}`);
+            const isActive = btn.classList.contains('active');
+            
+            // 简单数字变化逻辑
+            let currentCount = counts[type];
+            
+            if (isActive) {
+                btn.classList.remove('active');
+                // 还原文字
+                if(type === 'like') countSpan.innerText = '点赞';
+                if(type === 'coin') countSpan.innerText = '投币';
+                if(type === 'fav') countSpan.innerText = '收藏';
+            } else {
+                btn.classList.add('active');
+                // 显示+1后的数字 (模拟)
+                countSpan.innerText = currentCount + 1;
+                
+                // 添加一点简单的CSS震动或缩放已经在CSS里定义了
+            }
+        }
+
+        function resetActions() {
+            ['like', 'coin', 'fav'].forEach(type => {
+                const btn = document.getElementById(`btn-${type}`);
+                const countSpan = document.getElementById(`count-${type}`);
+                btn.classList.remove('active');
+                if(type === 'like') countSpan.innerText = '点赞';
+                if(type === 'coin') countSpan.innerText = '投币';
+                if(type === 'fav') countSpan.innerText = '收藏';
+            });
+        }
+    </script>
+</body>
+</html>
